@@ -56,4 +56,17 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    implementation("androidx.documentfile:documentfile:1.0.1")
+    implementation("io.coil-kt:coil-compose:2.5.0")
+    implementation("androidx.navigation:navigation-compose:2.7.7")
+    implementation("androidx.compose.foundation:foundation:1.6.0")
+// For LazyVerticalGrid
+    implementation("androidx.compose.material3:material3:1.3.2")
+// For TabRow
+    implementation("androidx.compose.ui:ui-util:1.6.0")
+// for Pager (Compose Foundation)
+    implementation("androidx.compose.foundation:foundation:1.6.0")
+    implementation("com.google.accompanist:accompanist-pager:0.30.1")
+    implementation("com.google.accompanist:accompanist-pager-indicators:0.30.1")
+// For Pager
 }

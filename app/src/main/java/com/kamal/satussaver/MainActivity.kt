@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.UriPermission
 import android.content.pm.PackageManager
+import android.media.Image
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -29,6 +30,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,11 +67,19 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
@@ -89,137 +99,135 @@ import kotlin.math.absoluteValue
 
 class MainActivity : ComponentActivity() {
     private val viewModel: BaseViewModel by viewModels()
- @SuppressLint("ViewModelConstructorInComposable", "SuspiciousIndentation")
- override fun onCreate(savedInstanceState: Bundle?) {
 
-    super.onCreate(savedInstanceState)
-    enableEdgeToEdge()
-    setContent {
-        SatusSaverTheme {
-            val navController = rememberNavController()
-            NavHost(navController = navController, startDestination = "dashboard"){
-                composable("dashboard") {
-                    Dashboard(viewModel , navController = navController)
-                }
-                composable("MediaScreen"){
-                    GalleryStatus(viewModel ,navController)
-                }
-            composable("PreviewScreen/{index}") { backStackEntry ->
-                val index = backStackEntry.arguments?.getString("index")?.toIntOrNull() ?: 0
+    @SuppressLint("ViewModelConstructorInComposable", "SuspiciousIndentation")
+    override fun onCreate(savedInstanceState: Bundle?) {
 
-                    Log.d("mediaList", "PreviewScreenNavi: ${viewModel.mediaList.size}")
-                PreviewScreen(viewModel,index, navController)
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            SatusSaverTheme {
+                val navController = rememberNavController()
+                NavHost(navController = navController, startDestination = "dashboard") {
+                    composable("dashboard") {
+                        Dashboard(viewModel, navController = navController)
+                    }
+                    composable("MediaScreen") {
+                        GalleryStatus(viewModel, navController)
+                    }
+                    composable("PreviewScreen/{index}") { backStackEntry ->
+                        val index = backStackEntry.arguments?.getString("index")?.toIntOrNull() ?: 0
+
+                        Log.d("mediaList", "PreviewScreenNavi: ${viewModel.mediaList.size}")
+                        PreviewScreen(viewModel, index, navController)
+                    }
                 }
-            }
 //                Dashboard(viewModel = BaseViewModel(),)
 
+            }
         }
     }
-}
 }
 
 @Composable
 fun StatusCard(viewModel: BaseViewModel, navController: NavHostController) {
-Card(
-    modifier = Modifier
-        .clickable {
-            viewModel.cardClicked.value = true
-            Log.d("cardclicked", "StatusCard:11111 ${viewModel.cardClicked}")
-        }
-        .fillMaxWidth()
-        .padding(top = 30.dp)
-        .height(200.dp),
-    shape = RoundedCornerShape(16.dp),
-    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-    border = BorderStroke(1.dp, Color.Gray)
-) {
+    Card(
+        modifier = Modifier
+            .clickable {
+                viewModel.cardClicked.value = true
+                Log.d("cardclicked", "StatusCard:11111 ${viewModel.cardClicked}")
+            }
+            .fillMaxWidth()
+            .padding(top = 30.dp)
+            .height(200.dp),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        border = BorderStroke(1.dp, Color.Gray)
+    ) {
 
-    Box {
-        Image(
-            painter = painterResource(id = R.drawable.simplewa_bg),
-            contentDescription = "Background",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
-
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp, 12.dp, 12.dp, 0.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Status Saver",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 25.sp
-                )
+        Box {
+            Image(
+                painter = painterResource(id = R.drawable.simplewa_bg),
+                contentDescription = "Background",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
             )
-            Text(
-                text = "Download & Save",
-                modifier = Modifier.padding(top = 5.dp),
-                style = MaterialTheme.typography.bodySmall.copy(
-                    color = Color.White,
-                    fontWeight = FontWeight.Normal,
-                    fontSize = 15.sp
-                )
-            )
+
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp, 10.dp, 10.dp, 0.dp),
-                verticalArrangement = Arrangement.Bottom
+                    .padding(12.dp, 12.dp, 12.dp, 0.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.swa_ic),
-                    contentDescription = "Background",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize()
+                Text(
+                    text = "Status Saver",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 25.sp
+                    )
                 )
+                Text(
+                    text = "Download & Save",
+                    modifier = Modifier.padding(top = 5.dp),
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = Color.White,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 15.sp
+                    )
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp, 10.dp, 10.dp, 0.dp),
+                    verticalArrangement = Arrangement.Bottom
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.swa_ic),
+                        contentDescription = "Background",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+
             }
+
 
         }
 
-
-
-    }
-
         Log.d("cardclicked", "StatusCard111111:${viewModel.cardClicked} ")
-    if (viewModel.cardClicked.value) {
-        loadStatus(viewModel,navController)
+        if (viewModel.cardClicked.value) {
+            loadStatus(viewModel, navController)
 //            cardClicked=false
 
-    }
+        }
 
-}
+    }
 }
 
 @Composable
 fun loadStatus(viewModel: BaseViewModel, navController: NavHostController) {
-if (checkPermissionForDocumentTree(
-        context = LocalContext.current,
-        uriTree = Uri.parse(Constant.normalWhatappPath)
-    )
-){
-   val list= getStatusFiles(LocalContext.current,  Uri.parse(Constant.normalWhatappPath))
-    Log.d("cardclicked", "loadStatus: permission granded $list")
-    viewModel.mediaList.clear()
-    viewModel.mediaList.addAll(list)
+    if (checkPermissionForDocumentTree(
+            context = LocalContext.current,
+            uriTree = Uri.parse(Constant.normalWhatappPath)
+        )
+    ) {
+        val list = getStatusFiles(LocalContext.current, Uri.parse(Constant.normalWhatappPath))
+        Log.d("cardclicked", "loadStatus: permission granded $list")
+        viewModel.mediaList.clear()
+        viewModel.mediaList.addAll(list)
 
-    viewModel.cardClicked.value = false
-    navController.navigate("MediaScreen")
+        viewModel.cardClicked.value = false
+        navController.navigate("MediaScreen")
 
-}else{
-    Log.d("cardclicked", "loadStatus: permission not granded ")
+    } else {
+        Log.d("cardclicked", "loadStatus: permission not granded ")
 
-      PermissionDialog(viewModel)
-
-
+        PermissionDialog(viewModel)
 
 
-}
+    }
 }
 
 
@@ -240,7 +248,7 @@ fun PermissionDialog(viewModel: BaseViewModel) {
                     uri,
                     Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
                 )
-                val list=getStatusFiles(context, Uri.parse(Constant.normalWhatappPath))
+                val list = getStatusFiles(context, Uri.parse(Constant.normalWhatappPath))
                 viewModel.mediaList.clear()
                 viewModel.mediaList.addAll(list)
 
@@ -315,8 +323,12 @@ fun PermissionDialog(viewModel: BaseViewModel) {
                                         Log.e("PermissionDialog", "Intent creation failed")
                                         viewModel.cardClicked.value = false
                                     }
-                                }else{
-                                    Toast.makeText(context,"Whats app is not install", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "Whats app is not install",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
                             }
                         ) {
@@ -329,38 +341,29 @@ fun PermissionDialog(viewModel: BaseViewModel) {
     }
 }
 
-fun createStatusFolderIntent(context: Context): Intent? {
-    val sm = context.getSystemService(Context.STORAGE_SERVICE) as StorageManager
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        val intent = sm.primaryStorageVolume.createOpenDocumentTreeIntent()
-        val initialUri = intent.getParcelableExtra<Uri>("android.provider.extra.INITIAL_URI") ?: return null
+fun createStatusFolderIntent(context: Context): Intent {
+    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
 
-        var uriString = initialUri.toString()
-            .replace("/root/", "/document/") +
-                "%3AWhatsApp%2FMedia%2F.Statuses"
+    val statusFolderUri =
+        Uri.parse("content://com.android.externalstorage.documents/document/primary%3AWhatsApp%2FMedia%2F.Statuses")
 
-        val targetUri = Uri.parse(uriString)
+    intent.putExtra("android.provider.extra.INITIAL_URI", statusFolderUri)
+    intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
+            Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+            Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
 
-        intent.putExtra("android.provider.extra.INITIAL_URI", targetUri)
-        intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
-                Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
-
-        return intent
-    }
-    return null
+    return intent
 }
 
 
-fun isPackageInstalled(context: Context,pakageName: String?): Boolean {
+fun isPackageInstalled(context: Context, pakageName: String?): Boolean {
     return try {
         val packageManager = context?.packageManager
         println("ImageFragmentpakage.isPackageInstalled   $packageManager")
         Log.d("pakage", "isPackageInstalled: $pakageName")
         packageManager?.getPackageInfo(pakageName!!, PackageManager.GET_ACTIVITIES)
         true
-    }
-    catch (e: PackageManager.NameNotFoundException) {
+    } catch (e: PackageManager.NameNotFoundException) {
         println("StatusFragment.isPackageInstalled " + e.message)
         false
     }
@@ -369,83 +372,102 @@ fun isPackageInstalled(context: Context,pakageName: String?): Boolean {
 
 @RequiresApi(Build.VERSION_CODES.N)
 private fun checkPermissionForDocumentTree(context: Context, uriTree: Uri): Boolean {
-return context.contentResolver.persistedUriPermissions.stream()
-    .anyMatch { permission: UriPermission -> permission.uri == uriTree }
+    return context.contentResolver.persistedUriPermissions.stream()
+        .anyMatch { permission: UriPermission -> permission.uri == uriTree }
 }
 
 @Composable
 fun LazyRowWithRoundedImages(viewModel: BaseViewModel) {
-    val context=LocalContext.current
-viewModel.loadStatusFiles(
-    context = context,
-    treeUri = Constant.normalWhatappPath.toUri()
-)
+    val context = LocalContext.current
+    viewModel.loadStatusFiles(
+        context = context,
+        treeUri = Constant.normalWhatappPath.toUri()
+    )
+    if (viewModel.mediaList.isNotEmpty()) {
+        LazyRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(viewModel.mediaList) { uri ->
+                if (uri.toString().endsWith(".jpg")) {
+                    AsyncImage(
+                        model = uri,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(120.dp)
+                            .clip(CircleShape)
+                    )
+                }
 
-LazyRow(
-    modifier = Modifier
-        .fillMaxWidth()
-        .padding(10.dp),
-    horizontalArrangement = Arrangement.spacedBy(12.dp)
-) {
-    items(viewModel.mediaList) { uri ->
-        if (uri.toString().endsWith(".jpg")) {
-            AsyncImage(
-                model = uri,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-            )}
-//        Image(
-//            painter = painterResource(id = imageRes),
-//            contentDescription = "Rounded Image",
-//            contentScale = ContentScale.Crop,
-//            modifier = Modifier
-//                .size(100.dp)
-//                .clip(CircleShape)
-//                .border(2.dp, Color.Gray, CircleShape)
-//        )
+            }
+        }
+    } else {
+        DrawableImage(R.drawable.no_recent_icon)
     }
 }
-}
 
+@Composable
+fun DrawableImage(icon: Int) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Image(
+            painter = painterResource(id = icon),
+            contentDescription = "My Image",
+            modifier = Modifier.padding(top = 10.dp, bottom = 5.dp),
+            contentScale = ContentScale.Crop
+        )
+    }
+}
 
 @Composable
 fun Dashboard(viewModel: BaseViewModel, navController: NavHostController) {
 
-Column(
-    modifier = Modifier
-        .fillMaxSize()
-        .padding(top = 34.dp, start = 16.dp, end = 16.dp)
-) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 34.dp, start = 16.dp, end = 16.dp)
+    ) {
 
-    StatusCard(viewModel,navController)
-    HeadLines("Recently Uploaded Status")
-    LazyRowWithRoundedImages(viewModel)
-    HeadLines("Downloaded Status")
-    val downloadList=getDownloadedStatuses(LocalContext.current)
-    Log.d("downloadList", "Dashboard: downloadList  $downloadList")
-    DownloadStatusCarousel(downloadList)
+        StatusCard(viewModel, navController)
+        HeadLines("Recently Uploaded Status")
+        LazyRowWithRoundedImages(viewModel)
+        HeadLines("Downloaded Status")
+        val downloadList = getDownloadedStatuses(LocalContext.current)
+        Log.d("downloadList", "Dashboard: downloadList  $downloadList")
+        DownloadStatusCarousel(downloadList)
+        HeadLines("Birthday Frames")
+        val framesList = arrayListOf(
+            R.drawable.b1,
+            R.drawable.b1,
+            R.drawable.b1,
+            R.drawable.b1
+        )
 
-}
+
+
+    }
 }
 
 @Composable
 fun HeadLines(text: String) {
-Text(
-    text = text,
-    style = TextStyle(
-        fontSize = 20.sp,
-        fontWeight = FontWeight.Bold
-    ), modifier = Modifier.padding(top = 10.dp)
-)
+    Text(
+        text = text,
+        style = TextStyle(
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold
+        ), modifier = Modifier.padding(top = 10.dp)
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DownloadStatusCarousel(downloadList: List<Uri>) {
-
+if (downloadList.isNotEmpty()){
     HorizontalMultiBrowseCarousel(
         state = rememberCarouselState { downloadList.count() },
         modifier = Modifier
@@ -467,41 +489,12 @@ fun DownloadStatusCarousel(downloadList: List<Uri>) {
                 .maskClip(MaterialTheme.shapes.extraLarge)
         )
     }
-}
+}else{
+    DrawableImage(R.drawable.no_download_ic)
+}}
 
 
-@Composable
-fun AnimatedCarousel(
-    imageList: List<Uri>,
-    modifier: Modifier = Modifier,
-    imageHeight: Dp = 200.dp,
-    cornerRadius: Dp = 16.dp
-) {
-    val pagerState = rememberPagerState { imageList.size }
 
-    HorizontalPager(
-        state = pagerState,
-        contentPadding = PaddingValues(horizontal = 48.dp),
-        pageSpacing = 16.dp,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(imageHeight)
-    ) { page ->
-        val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
-        val scale = 1f - (0.25f * pageOffset.absoluteValue.coerceIn(0f, 1f))
-
-        AsyncImage(
-            model = imageList[page],
-            contentDescription = "Image $page",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1.5f)
-                .scale(scale)
-                .clip(RoundedCornerShape(cornerRadius))
-        )
-    }
-}
 
 
 fun getStatusFiles(context: Context, treeUri: Uri): List<Uri> {
@@ -513,6 +506,7 @@ fun getStatusFiles(context: Context, treeUri: Uri): List<Uri> {
     }
     return emptyList()
 }
+
 fun getDownloadedStatuses(context: Context): List<Uri> {
     val downloadDir = File(context.getExternalFilesDir(null), "StatusSaver")
 
@@ -531,11 +525,58 @@ fun getDownloadedStatuses(context: Context): List<Uri> {
     } ?: emptyList()
 }
 
+@Composable
+fun ImageWithFramePicker() {
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
-//@Preview(showBackground = true)
-//@Composable
-//fun GreetingPreview() {
-//SatusSaverTheme {
-//    Dashboard(viewModel = BaseViewModel(), navController = Naa)
-//}
-//}
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        selectedImageUri = uri
+    }
+
+    Column {
+        Button(onClick = { launcher.launch("image/*") }) {
+            Text("Select Image")
+        }
+
+        selectedImageUri?.let { uri ->
+            ImageWithFrame(uri = uri)
+        }
+    }
+}
+
+@Composable
+fun ImageWithFrame(uri: Uri) {
+    val context = LocalContext.current
+
+    // Example: pick frame from framesList[0]
+    val frameRes = R.drawable.b1
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(400.dp)
+            .clip(RoundedCornerShape(16.dp))
+    ) {
+        // User selected image
+        Image(
+            painter = rememberAsyncImagePainter(uri),
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Gray),
+            contentScale = ContentScale.Crop
+        )
+
+        // Frame overlay
+        Image(
+            painter = painterResource(id = frameRes),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Fit
+        )
+    }
+}
+
+
